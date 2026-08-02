@@ -1,0 +1,26 @@
+{
+    "name": "zana/logging",
+    "description": "Logging abstraction for Zana applications",
+    "type": "library",
+    "keywords": ["zana", "logging", "log", "logger"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Zana\\Logging\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Zana\\Logging\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
+
