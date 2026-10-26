@@ -24,8 +24,8 @@ final class LoggingServiceProvider extends ServiceProvider
                 $r->get(ConfigurationInterface::class),
                 $r->get(ApplicationInterface::class)->basePath(),
                 $r->get(LogContext::class),
-            ))
-            ->singleton(LoggerInterface::class, static fn (ServiceResolverInterface $r): LoggerInterface => $r->get(LogManager::class)->channel());
+            ))->uses(ConfigurationInterface::class, ApplicationInterface::class, LogContext::class)
+            ->singleton(LoggerInterface::class, static fn (ServiceResolverInterface $r): LoggerInterface => $r->get(LogManager::class)->channel())->uses(LogManager::class);
     }
 
     public function origin(): string
