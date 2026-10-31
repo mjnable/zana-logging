@@ -24,6 +24,9 @@ use Zana\Logging\Processor\ContextProcessor;
  *             'app' => ['handler' => 'stream', 'path' => 'var/log/app.log', 'level' => 'info', 'formatter' => 'json'],
  *         ],
  *     ]
+ *
+ * A file channel can rotate: 'max_size' => '10M' (bytes, or K, M, G) and
+ * 'max_files' => 5 (2.6).
  */
 final class LogManager
 {
@@ -43,6 +46,27 @@ final class LogManager
     public function defaultChannel(): string
     {
         return $this->config->string('logging.default', 'app');
+    }
+
+    /**
+     * The files the configured stream channels write to, by channel.
+     *
+     * @return array<string, string>
+     */
+    public function files(): array
+    {
+        $files = [];
+        foreach ($this->config->array('logging.channels', []) as $name => $settings) {
+            if (!is_array($settings) || ($settings['handler'] ?? 'stream') !== 'stream') {
+                continue;
+            }
+            $path = $this->path((string) ($settings['path'] ?? 'php://stderr'));
+            if (!str_starts_with($path, 'php://')) {
+                $files[(string) $name] = $path;
+            }
+        }
+
+        return $files;
     }
 
     /**
@@ -84,7 +108,13 @@ final class LogManager
         $level = LogLevel::fromName($settings['level'] ?? 'debug');
 
         return match ($settings['handler'] ?? 'stream') {
-            'stream' => new StreamHandler($this->path((string) ($settings['path'] ?? 'php://stderr')), $level, $this->formatter($settings['formatter'] ?? 'line')),
+            'stream' => new StreamHandler(
+                $this->path((string) ($settings['path'] ?? 'php://stderr')),
+                $level,
+                $this->formatter($settings['formatter'] ?? 'line'),
+                isset($settings['max_size']) ? self::bytes($channel, $settings['max_size']) : null,
+                (int) ($settings['max_files'] ?? 5),
+            ),
             'array' => new ArrayHandler($level),
             'null' => new NullHandler(),
             default => throw new \InvalidArgumentException(sprintf('Log channel "%s" has an unknown handler: %s.', $channel, var_export($settings['handler'], true))),
@@ -98,6 +128,21 @@ final class LogManager
             'json' => new JsonFormatter(),
             default => throw new \InvalidArgumentException('Unknown log formatter: ' . var_export($name, true) . '.'),
         };
+    }
+
+    /**
+     * "10M", "500K", "1G" or a number of bytes.
+     */
+    private static function bytes(string $channel, mixed $size): int
+    {
+        if (is_int($size) || (is_string($size) && ctype_digit($size))) {
+            return (int) $size;
+        }
+        if (is_string($size) && preg_match('/^(\d+)\s*([KMG])B?$/i', trim($size), $match) === 1) {
+            return (int) $match[1] * ['K' => 1024, 'M' => 1024 ** 2, 'G' => 1024 ** 3][strtoupper($match[2])];
+        }
+
+        throw new \InvalidArgumentException(sprintf('Log channel "%s" has an invalid max_size: %s. Use bytes, or K, M or G, e.g. "10M".', $channel, var_export($size, true)));
     }
 
     private function path(string $path): string

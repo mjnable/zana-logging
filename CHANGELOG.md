@@ -3,6 +3,18 @@
 All Zana packages share one version number and are released together. A release that did
 not change this package is not listed.
 
+## 2.6.0 — unreleased
+
+### Added
+
+- Size rotation for file channels: `max_size` (bytes, or `K`, `M`, `G`) and `max_files` (5) (FE-43).
+- `LogFilesCheck`, a deployment check that warns when a configured log file cannot be written;
+  `LogManager::files()`.
+
+### Changed
+
+- `StreamHandler` no longer throws when its file cannot be created or written: the line goes to PHP's
+  error log with the reason, so logging never breaks the application.
 ## 2.4.0 — 2026-10-26
 
 ### Changed
